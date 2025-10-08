@@ -12,6 +12,9 @@ import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import CommandDashboard from './components/Command/CommandDashboard';
 import NodeDashboard from './components/Node/NodeDashboard';
+import EmergencyReport from './components/Public/EmergencyReport';
+import TrackEmergency from './components/Public/TrackEmergency';
+import LandingPage from './components/Public/LandingPage';
 
 const theme = createTheme({
   palette: {
@@ -29,7 +32,16 @@ const ProtectedRoute = ({ children, allowedRole }) => {
   const { isAuthenticated, user, loading } = useAuth();
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh' 
+      }}>
+        Loading...
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
@@ -51,9 +63,16 @@ function App() {
         <SocketProvider>
           <Router>
             <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/report" element={<EmergencyReport />} />
+              <Route path="/track/:emergencyId" element={<TrackEmergency />} />
+              
+              {/* Auth Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               
+              {/* Protected Routes */}
               <Route
                 path="/command"
                 element={
@@ -71,8 +90,6 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              
-              <Route path="/" element={<Navigate to="/login" />} />
             </Routes>
           </Router>
           <ToastContainer position="top-right" autoClose={3000} />

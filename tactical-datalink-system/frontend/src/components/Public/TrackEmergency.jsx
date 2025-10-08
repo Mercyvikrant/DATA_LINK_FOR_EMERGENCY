@@ -10,17 +10,21 @@ import {
   Chip,
   CircularProgress,
   Alert,
-  Timeline,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineConnector,
-  TimelineContent,
-  TimelineDot,
   Card,
   CardContent,
   Grid,
   Button
 } from '@mui/material';
+
+import {
+  Timeline,
+  TimelineItem,
+  TimelineSeparator,
+  TimelineConnector,
+  TimelineContent,
+  TimelineDot
+} from '@mui/lab';
+
 import {
   CheckCircle,
   HourglassEmpty,
