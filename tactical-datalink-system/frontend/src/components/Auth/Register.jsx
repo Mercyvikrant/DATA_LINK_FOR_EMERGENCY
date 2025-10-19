@@ -165,7 +165,10 @@ const Register = () => {
                 onChange={handleChange}
                 margin="normal"
                 InputLabelProps={{ style: { color: '#ccc' } }}
-                InputProps={{ style: { color: '#fff' , borderRadius:"50px",backgroundColor: 'rgba(255, 255, 255, 0.1)'} }}
+                InputProps={{ style: { color: '#fff' , borderRadius:"50px",backgroundColor: 'rgba(255, 255, 255, 0.1)'
+
+                  
+                } }}
               />
 
               <TextField
