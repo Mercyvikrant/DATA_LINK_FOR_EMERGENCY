@@ -1,277 +1,235 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Container,
   Box,
+  Container,
   Typography,
-  Button,
   Grid,
   Card,
   CardContent,
-  CardActions,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  AppBar,
+  Toolbar,
   Paper
 } from '@mui/material';
 import {
+  Menu as MenuIcon,
   Report as ReportIcon,
   Search as SearchIcon,
   Login as LoginIcon,
-  Dashboard as DashboardIcon,
   Phone as PhoneIcon
 } from '@mui/icons-material';
 
+const drawerWidth = 240;
+
 const LandingPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
+
+  const menuItems = [
+    { icon: <ReportIcon />, text: 'Report Emergency', path: '/report' },
+    { icon: <SearchIcon />, text: 'Track Emergency', path: '/track' },
+    { icon: <LoginIcon />, text: 'Staff Login', path: '/login' },
+    { icon: <PhoneIcon />, text: 'Call 112 (Emergency)', path: 'tel:112', external: true }
+  ];
+
+  const drawer = (
+    <Box sx={{ bgcolor: '#1a237e', color: 'white', height: '100%', p: 2 }}>
+      <Typography variant="h6" align="center" sx={{ mb: 3, fontWeight: 'bold' }}>
+        🚨 Tactical Data Link
+      </Typography>
+
+      <List>
+        {menuItems.map((item, index) => {
+          const isActive = location.pathname.startsWith(item.path);
+          return (
+            <ListItem disablePadding key={index} sx={{ mb: 1 }}>
+              <ListItemButton
+                onClick={() => {
+                  if (item.external) {
+                    window.location.href = item.path;
+                  } else if (item.path === '/track') {
+                    const id = prompt('Enter Emergency ID to track:');
+                    if (id) navigate(`/track/${id}`);
+                  } else {
+                    navigate(item.path);
+                  }
+                }}
+                sx={{
+                  borderRadius: '30px',
+                  transition: 'all 0.3s ease',
+                  bgcolor: isActive ? 'rgba(255, 255, 255, 0.25)' : 'transparent',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.2)',
+                    transform: 'translateX(5px)',
+                    borderRadius: '50px',
+                  },
+                  '&:active': {
+                    bgcolor: 'rgba(255, 255, 255, 0.3)',
+                  },
+                }}
+              >
+                <ListItemIcon sx={{ color: 'white', minWidth: 40 }}>
+                  {item.icon}
+                </ListItemIcon>
+                <ListItemText primary={item.text} />
+              </ListItemButton>
+            </ListItem>
+          );
+        })}
+      </List>
+
+      <ListItem sx={{ mt: 4 }}>
+        <Typography
+          variant="body2"
+          color="rgba(255,255,255,0.6)"
+          align="center"
+          sx={{ width: '100%' }}
+        >
+          Version 1.0.0
+        </Typography>
+      </ListItem>
+    </Box>
+  );
 
   return (
-    <Box>
-      {/* Hero Section */}
-      <Paper
-        sx={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          py: 8,
-          mb: 6
-        }}
-      >
-        <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography variant="h2" gutterBottom fontWeight="bold">
+    <Box sx={{ display: 'flex' }}>
+      {/* App Bar for Mobile */}
+      <AppBar position="fixed" sx={{ display: { md: 'none' }, bgcolor: '#1a237e' }}>
+        <Toolbar>
+          <IconButton color="inherit" edge="start" onClick={handleDrawerToggle}>
+            <MenuIcon />
+          </IconButton>
+          <Typography variant="h6" noWrap>
+            Tactical Data Link System
+          </Typography>
+        </Toolbar>
+      </AppBar>
+
+      {/* Sidebar Drawer */}
+      <Box component="nav" sx={{ width: { md: drawerWidth }, flexShrink: { md: 0 } }}>
+        {/* Mobile Drawer */}
+        <Drawer
+          variant="temporary"
+          open={mobileOpen}
+          onClose={handleDrawerToggle}
+          ModalProps={{ keepMounted: true }}
+          sx={{
+            display: { xs: 'block', md: 'none' },
+            '& .MuiDrawer-paper': { width: drawerWidth }
+          }}
+        >
+          {drawer}
+        </Drawer>
+
+        {/* Permanent Drawer for Desktop */}
+        <Drawer
+          variant="permanent"
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' }
+          }}
+          open
+        >
+          {drawer}
+        </Drawer>
+      </Box>
+
+      {/* Main Content */}
+      <Box component="main" sx={{ flexGrow: 1, p: 3, mt: { xs: 7, md: 0 } }}>
+        {/* Hero Section */}
+        <Paper
+          sx={{
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            py: { xs: 6, md: 8 },
+            mb: 6,
+            borderRadius: 3,
+            boxShadow: 4,
+            textAlign: 'center',
+          }}
+        >
+          <Container maxWidth="md">
+            <Typography variant="h3" gutterBottom fontWeight="bold">
               🚨 Tactical Data Link System
             </Typography>
             <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
               Real-time Emergency Response Coordination
             </Typography>
-            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
-              <Button
-                variant="contained"
-                size="large"
-                onClick={() => navigate('/report')}
-                sx={{
-                  bgcolor: 'error.main',
-                  '&:hover': { bgcolor: 'error.dark' },
-                  px: 4,
-                  py: 1.5
-                }}
-                startIcon={<ReportIcon />}
-              >
-                Report Emergency
-              </Button>
-              <Button
-                variant="outlined"
-                size="large"
-                onClick={() => navigate('/login')}
-                sx={{
-                  color: 'white',
-                  borderColor: 'white',
-                  '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' },
-                  px: 4,
-                  py: 1.5
-                }}
-                startIcon={<LoginIcon />}
-              >
-                Staff Login
-              </Button>
-            </Box>
-          </Box>
-        </Container>
-      </Paper>
-
-      {/* Features Section */}
-      <Container maxWidth="lg" sx={{ mb: 8 }}>
-        <Typography variant="h4" align="center" gutterBottom fontWeight="bold">
-          How It Works
-        </Typography>
-        <Typography variant="body1" align="center" color="text.secondary" sx={{ mb: 4 }}>
-          Our system connects emergency responders with people in need
-        </Typography>
-
-        <Grid container spacing={4}>
-          <Grid item xs={12} md={4}>
-            <Card sx={{ height: '100%', textAlign: 'center' }}>
-              <CardContent>
-                <Box sx={{ fontSize: 60, mb: 2 }}>📍</Box>
-                <Typography variant="h6" gutterBottom>
-                  Report Emergency
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Share your location and describe the emergency. Our system instantly notifies command center.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Card sx={{ height: '100%', textAlign: 'center' }}>
-              <CardContent>
-                <Box sx={{ fontSize: 60, mb: 2 }}>🚑</Box>
-                <Typography variant="h6" gutterBottom>
-                  Units Dispatched
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Command center assigns the nearest available unit to respond to your emergency.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <Card sx={{ height: '100%', textAlign: 'center' }}>
-              <CardContent>
-                <Box sx={{ fontSize: 60, mb: 2 }}>📊</Box>
-                <Typography variant="h6" gutterBottom>
-                  Track Response
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Track the status of your emergency and see units responding in real-time.
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Container>
-
-      {/* Quick Actions */}
-      <Container maxWidth="md" sx={{ mb: 8 }}>
-        <Paper elevation={3} sx={{ p: 4 }}>
-          <Typography variant="h5" gutterBottom align="center">
-            Quick Actions
-          </Typography>
-          <Grid container spacing={2} sx={{ mt: 2 }}>
-            <Grid item xs={12} sm={6}>
-              <Button
-                fullWidth
-                variant="contained"
-                color="error"
-                size="large"
-                startIcon={<ReportIcon />}
-                onClick={() => navigate('/report')}
-              >
-                Report New Emergency
-              </Button>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Button
-                fullWidth
-                variant="outlined"
-                color="primary"
-                size="large"
-                startIcon={<SearchIcon />}
-                onClick={() => {
-                  const id = prompt('Enter Emergency ID to track:');
-                  if (id) navigate(`/track/${id}`);
-                }}
-              >
-                Track Emergency
-              </Button>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Button
-                fullWidth
-                variant="outlined"
-                size="large"
-                startIcon={<LoginIcon />}
-                onClick={() => navigate('/login')}
-              >
-                Login (Staff)
-              </Button>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Button
-                fullWidth
-                variant="outlined"
-                color="error"
-                size="large"
-                startIcon={<PhoneIcon />}
-                href="tel:112"
-              >
-                Call 112 (Emergency)
-              </Button>
-            </Grid>
-          </Grid>
+          </Container>
         </Paper>
-      </Container>
 
-      {/* Statistics Section */}
-      <Box sx={{ bgcolor: 'background.default', py: 6 }}>
-        <Container maxWidth="lg">
-          <Grid container spacing={4} sx={{ textAlign: 'center' }}>
-            <Grid item xs={12} sm={3}>
-              <Typography variant="h3" color="primary" fontWeight="bold">
-                24/7
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Always Available
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <Typography variant="h3" color="primary" fontWeight="bold">
-                &lt;5 min
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Avg Response Time
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <Typography variant="h3" color="primary" fontWeight="bold">
-                100%
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Coverage Area
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={3}>
-              <Typography variant="h3" color="primary" fontWeight="bold">
-                Real-time
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                GPS Tracking
-              </Typography>
-            </Grid>
-          </Grid>
-        </Container>
-      </Box>
-
-      {/* Footer */}
-      <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 4, mt: 8 }}>
-        <Container maxWidth="lg">
+        {/* Features Section */}
+        <Container maxWidth="lg" sx={{ mb: 8 }}>
+          <Typography variant="h4" align="center" gutterBottom fontWeight="bold">
+            How It Works
+          </Typography>
           <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              <Typography variant="h6" gutterBottom>
-                Tactical Data Link System
-              </Typography>
-              <Typography variant="body2">
-                Modern emergency response coordination system for faster and more efficient emergency management.
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <Typography variant="h6" gutterBottom>
-                Quick Links
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => navigate('/report')}>
-                Report Emergency
-              </Typography>
-              <Typography variant="body2" sx={{ cursor: 'pointer' }} onClick={() => navigate('/login')}>
-                Staff Login
-              </Typography>
-            </Grid>
-            <Grid item xs={12} md={3}>
-              <Typography variant="h6" gutterBottom>
-                Emergency Contact
-              </Typography>
-              <Typography variant="body2">
-                Phone: 112 (Emergency)
-              </Typography>
-              <Typography variant="body2">
-                Email: emergency@tdls.com
-              </Typography>
-            </Grid>
+            {[
+              { icon: '📍', title: 'Report Emergency', text: 'Share your location and describe the emergency.' },
+              { icon: '🚑', title: 'Units Dispatched', text: 'Nearest available units are assigned instantly.' },
+              { icon: '📊', title: 'Track Response', text: 'View live status and unit locations in real-time.' }
+            ].map((item, i) => (
+              <Grid item xs={12} md={4} key={i}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    textAlign: 'center',
+                    transition: '0.3s',
+                    '&:hover': { transform: 'translateY(-5px)', boxShadow: 6 },
+                  }}
+                >
+                  <CardContent>
+                    <Box sx={{ fontSize: 60, mb: 2 }}>{item.icon}</Box>
+                    <Typography variant="h6" gutterBottom>{item.title}</Typography>
+                    <Typography variant="body2" color="text.secondary">{item.text}</Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
           </Grid>
-          <Box sx={{ textAlign: 'center', mt: 4, pt: 2, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
-            <Typography variant="body2">
-              © 2024 Tactical Data Link System. All rights reserved.
-            </Typography>
-          </Box>
         </Container>
+
+        {/* Statistics Section */}
+        <Box sx={{ bgcolor: 'background.default', py: 6, borderRadius: 3 }}>
+          <Container maxWidth="lg">
+            <Grid container spacing={4} sx={{ textAlign: 'center' }}>
+              {[
+                { num: '24/7', text: 'Always Available' },
+                { num: '<5 min', text: 'Avg Response Time' },
+                { num: '100%', text: 'Coverage Area' },
+                { num: 'Real-time', text: 'GPS Tracking' }
+              ].map((stat, i) => (
+                <Grid item xs={12} sm={3} key={i}>
+                  <Typography variant="h3" color="primary" fontWeight="bold">
+                    {stat.num}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {stat.text}
+                  </Typography>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </Box>
+
+        {/* Footer */}
+        <Box sx={{ bgcolor: 'primary.main', color: 'white', py: 4, mt: 8, borderRadius: 2 }}>
+          <Container maxWidth="lg">
+            <Typography variant="body2" align="center">
+              © 2025 Tactical Data Link System — All rights reserved.
+            </Typography>
+          </Container>
+        </Box>
       </Box>
     </Box>
   );
