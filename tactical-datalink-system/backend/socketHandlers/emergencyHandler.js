@@ -18,7 +18,7 @@ module.exports = (io, socket) => {
       // Notify command center immediately
       io.emit('new_emergency', emergency);
 
-      console.log(`New emergency reported: ${emergencyId}`);
+      console.log(`🚨 New emergency reported: ${emergencyId}`);
     } catch (error) {
       console.error('Emergency report error:', error);
       socket.emit('error', { message: 'Failed to report emergency' });
@@ -38,6 +38,17 @@ module.exports = (io, socket) => {
         throw new Error('Emergency or Unit not found');
       }
 
+      // Calculate distance
+      const distance = calculateDistance(
+        emergency.location.latitude,
+        emergency.location.longitude,
+        unit.position.latitude,
+        unit.position.longitude
+      );
+
+      // Calculate ETA (assuming average speed of 40 km/h in city)
+      const etaMinutes = Math.round((distance / 40) * 60);
+
       // Update emergency with assigned unit
       emergency.assignedUnits.push({
         unit: unit._id,
@@ -51,11 +62,23 @@ module.exports = (io, socket) => {
       unit.assignedEmergency = emergency._id;
       await unit.save();
 
-      // Notify the assigned unit
+      // Notify the assigned unit with distance and route info
       if (unit.socketId) {
         io.to(unit.socketId).emit('emergency_assigned', {
           emergency: emergency,
-          role: role
+          role: role,
+          distance: distance.toFixed(2),
+          eta: etaMinutes,
+          routeInfo: {
+            from: {
+              lat: unit.position.latitude,
+              lng: unit.position.longitude
+            },
+            to: {
+              lat: emergency.location.latitude,
+              lng: emergency.location.longitude
+            }
+          }
         });
       }
 
@@ -63,7 +86,9 @@ module.exports = (io, socket) => {
       io.emit('unit_assigned', {
         emergencyId,
         unitId,
-        role
+        role,
+        distance: distance.toFixed(2),
+        eta: etaMinutes
       });
 
       // Send nearby resources to assigned unit
@@ -77,7 +102,7 @@ module.exports = (io, socket) => {
         io.to(unit.socketId).emit('nearby_resources', nearbyUnits);
       }
 
-      console.log(`Unit ${unitId} assigned to ${emergencyId}`);
+      console.log(`✅ Unit ${unitId} assigned to ${emergencyId} - Distance: ${distance.toFixed(2)}km, ETA: ${etaMinutes} min`);
     } catch (error) {
       console.error('Unit assignment error:', error);
       socket.emit('error', { message: 'Failed to assign unit' });
@@ -121,7 +146,7 @@ module.exports = (io, socket) => {
         resolvedAt: emergency.resolvedAt
       });
 
-      console.log(`Emergency ${emergencyId} status updated to ${status}`);
+      console.log(`📊 Emergency ${emergencyId} status updated to ${status}`);
     } catch (error) {
       console.error('Emergency status update error:', error);
       socket.emit('error', { message: 'Failed to update emergency status' });

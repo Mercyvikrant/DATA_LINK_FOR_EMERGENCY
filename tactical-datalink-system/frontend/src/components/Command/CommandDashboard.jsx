@@ -1,4 +1,3 @@
-// javascript
 import React, { useState, useEffect } from 'react';
 import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
@@ -6,6 +5,7 @@ import TacticalMapContainer from '../Map/MapContainer';
 import EmergencyList from './EmergencyList';
 import UnitManagement from './UnitManagement';
 import MessagePanel from '../Communication/MessagePanel';
+import axios from 'axios';
 import {
   Box,
   Grid,
@@ -13,9 +13,8 @@ import {
   Typography,
   AppBar,
   Toolbar,
-  Button,
-  Chip,
   IconButton,
+  Chip,
   Drawer
 } from '@mui/material';
 import {
@@ -23,11 +22,12 @@ import {
   Refresh as RefreshIcon,
   Logout as LogoutIcon
 } from '@mui/icons-material';
-import axios from 'axios';
 
 const CommandDashboard = () => {
   const { user, logout } = useAuth();
-  const { units, emergencies, connected, assignUnit, updateEmergencyStatus } = useSocket();
+  const { units, emergencies, connected, assignUnit, updateEmergencyStatus, socket } = useSocket();
+
+  const [allUnits, setAllUnits] = useState([]);
   const [selectedEmergency, setSelectedEmergency] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -38,20 +38,66 @@ const CommandDashboard = () => {
     resolvedToday: 0
   });
 
+  // Load units from API on mount
   useEffect(() => {
-    // Calculate stats safely even if arrays are undefined
-    const availableCount = (units || []).filter(u => u.status === 'available').length;
-    const activeEmergencyCount = (emergencies || []).filter(
-      e => e.status === 'assigned' || e.status === 'in-progress'
+    const loadUnits = async () => {
+      try {
+        console.log('🔄 Loading units from API...');
+        const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/units`);
+        console.log('✅ Loaded units:', response.data);
+        setAllUnits(response.data);
+      } catch (error) {
+        console.error('❌ Error loading units:', error);
+      }
+    };
+
+    if (user?.role === 'command') {
+      loadUnits();
+    }
+  }, [user]);
+
+  // Update units from socket
+  useEffect(() => {
+    if (units.length > 0) {
+      console.log('📡 Received units from socket:', units);
+      setAllUnits(units);
+    }
+  }, [units]);
+
+  // Calculate live statistics
+  useEffect(() => {
+    if (!emergencies || !Array.isArray(emergencies)) return;
+
+    const availableCount = (allUnits || []).filter(u => u.status === 'available').length;
+
+    // Normalize emergency statuses for robustness
+    const normalizedEmergencies = emergencies.map(e => ({
+      ...e,
+      status: (e.status || '').toLowerCase()
+    }));
+
+    const activeEmergencyCount = normalizedEmergencies.filter(
+      e => e.status === 'assigned' || e.status === 'in-progress' || e.status === 'active'
+    ).length;
+
+    const resolvedCount = normalizedEmergencies.filter(
+      e => e.status === 'resolved' || e.status === 'completed' || e.status === 'closed'
     ).length;
 
     setStats({
-      totalUnits: units?.length || 0,
+      totalUnits: allUnits?.length || 0,
       availableUnits: availableCount,
       activeEmergencies: activeEmergencyCount,
-      resolvedToday: (emergencies || []).filter(e => e.status === 'resolved').length
+      resolvedToday: resolvedCount
     });
-  }, [units, emergencies]);
+
+    console.log('📊 Stats Updated:', {
+      totalUnits: allUnits?.length,
+      availableUnits: availableCount,
+      activeEmergencyCount,
+      resolvedCount
+    });
+  }, [allUnits, emergencies]);
 
   const handleAssignUnit = (emergency, unit, role = 'primary') => {
     assignUnit(emergency.emergencyId, unit.unitId, role);
@@ -64,9 +110,8 @@ const CommandDashboard = () => {
 
   const handleRefresh = async () => {
     try {
-      // Ensure API URL is defined in your .env file
       await axios.get(`${process.env.REACT_APP_API_URL}/api/units`);
-      // Data will be updated via socket automatically
+      // Data will update via socket
     } catch (error) {
       console.error('Refresh error:', error);
     }
@@ -77,22 +122,13 @@ const CommandDashboard = () => {
       {/* App Bar */}
       <AppBar position="static">
         <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => setDrawerOpen(!drawerOpen)}
-            sx={{ mr: 2 }}
-          >
+          <IconButton edge="start" color="inherit" onClick={() => setDrawerOpen(!drawerOpen)} sx={{ mr: 2 }}>
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1 }}>
             Command Center - {user?.name}
           </Typography>
-          <Chip
-            label={connected ? 'Connected' : 'Disconnected'}
-            color={connected ? 'success' : 'error'}
-            sx={{ mr: 2 }}
-          />
+          <Chip label={connected ? 'Connected' : 'Disconnected'} color={connected ? 'success' : 'error'} sx={{ mr: 2 }} />
           <IconButton color="inherit" onClick={handleRefresh}>
             <RefreshIcon />
           </IconButton>
@@ -127,33 +163,25 @@ const CommandDashboard = () => {
             <Grid container spacing={2}>
               <Grid item xs={6}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
-                  <Typography variant="h4" color="primary">
-                    {stats.totalUnits}
-                  </Typography>
+                  <Typography variant="h4" color="primary">{stats.totalUnits}</Typography>
                   <Typography variant="body2">Total Units</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={6}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
-                  <Typography variant="h4" color="success.main">
-                    {stats.availableUnits}
-                  </Typography>
+                  <Typography variant="h4" color="success.main">{stats.availableUnits}</Typography>
                   <Typography variant="body2">Available</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={6}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
-                  <Typography variant="h4" color="error.main">
-                    {stats.activeEmergencies}
-                  </Typography>
+                  <Typography variant="h4" color="error.main">{stats.activeEmergencies}</Typography>
                   <Typography variant="body2">Active</Typography>
                 </Paper>
               </Grid>
               <Grid item xs={6}>
                 <Paper sx={{ p: 2, textAlign: 'center' }}>
-                  <Typography variant="h4" color="info.main">
-                    {stats.resolvedToday}
-                  </Typography>
+                  <Typography variant="h4" color="info.main">{stats.resolvedToday}</Typography>
                   <Typography variant="body2">Resolved</Typography>
                 </Paper>
               </Grid>
@@ -162,7 +190,7 @@ const CommandDashboard = () => {
 
           <Box sx={{ p: 2 }}>
             <UnitManagement
-              units={units}
+              units={allUnits}  // use allUnits
               onUnitSelect={setSelectedUnit}
               selectedUnit={selectedUnit}
             />
@@ -173,7 +201,7 @@ const CommandDashboard = () => {
         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
           <Box sx={{ flexGrow: 1, position: 'relative' }}>
             <TacticalMapContainer
-              units={units}
+              units={allUnits}  // use allUnits
               emergencies={emergencies}
               onEmergencyClick={setSelectedEmergency}
               onUnitClick={setSelectedUnit}
@@ -184,7 +212,7 @@ const CommandDashboard = () => {
           <Paper sx={{ height: '250px', overflow: 'auto' }}>
             <EmergencyList
               emergencies={emergencies}
-              units={units}
+              units={allUnits}
               selectedEmergency={selectedEmergency}
               onEmergencySelect={setSelectedEmergency}
               onAssignUnit={handleAssignUnit}

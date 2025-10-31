@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Polyline } from 'react-leaflet';
 import {
   Box,
   Typography,
@@ -13,11 +14,10 @@ import {
 } from '@mui/material';
 import {
   CheckCircle,
-  Warning,
-  Navigation
+  Warning
 } from '@mui/icons-material';
 
-const AssignedEmergency = ({ emergency, onStatusUpdate, nearbyResources = [] }) => {
+const AssignedEmergency = ({ emergency, onStatusUpdate, nearbyResources = [], routeInfo, distance, eta }) => {
   const [notes, setNotes] = useState('');
 
   const getSeverityColor = (severity) => {
@@ -37,6 +37,7 @@ const AssignedEmergency = ({ emergency, onStatusUpdate, nearbyResources = [] }) 
 
   return (
     <Box sx={{ p: 2 }}>
+      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
         <Typography variant="h6">
           Assigned Emergency
@@ -48,6 +49,7 @@ const AssignedEmergency = ({ emergency, onStatusUpdate, nearbyResources = [] }) 
         />
       </Box>
 
+      {/* Emergency Details */}
       <Alert severity="info" sx={{ mb: 2 }}>
         <Typography variant="subtitle2">{emergency.title}</Typography>
         <Typography variant="body2">{emergency.description}</Typography>
@@ -56,6 +58,35 @@ const AssignedEmergency = ({ emergency, onStatusUpdate, nearbyResources = [] }) 
         </Typography>
       </Alert>
 
+      {/* Navigation Info (New Feature) */}
+      {distance && eta && (
+        <Box sx={{ mb: 2, p: 2, bgcolor: 'success.light', borderRadius: 1 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            📍 Navigation Info
+          </Typography>
+          <Typography variant="body2">
+            <strong>Distance:</strong> {distance} km
+          </Typography>
+          <Typography variant="body2">
+            <strong>Estimated Time:</strong> {eta} minutes
+          </Typography>
+          <Button
+            variant="outlined"
+            size="small"
+            sx={{ mt: 1 }}
+            onClick={() => {
+              window.open(
+                `https://www.google.com/maps/dir/?api=1&destination=${emergency.location.latitude},${emergency.location.longitude}`,
+                '_blank'
+              );
+            }}
+          >
+            Open in Google Maps
+          </Button>
+        </Box>
+      )}
+
+      {/* Location Info */}
       <Box sx={{ mb: 2 }}>
         <Typography variant="subtitle2" gutterBottom>
           Location
@@ -70,6 +101,7 @@ const AssignedEmergency = ({ emergency, onStatusUpdate, nearbyResources = [] }) 
         )}
       </Box>
 
+      {/* Nearby Resources */}
       {nearbyResources.length > 0 && (
         <Box sx={{ mb: 2 }}>
           <Typography variant="subtitle2" gutterBottom>
@@ -90,6 +122,7 @@ const AssignedEmergency = ({ emergency, onStatusUpdate, nearbyResources = [] }) 
 
       <Divider sx={{ my: 2 }} />
 
+      {/* Notes and Status Controls */}
       <Box>
         <TextField
           fullWidth
@@ -128,6 +161,27 @@ const AssignedEmergency = ({ emergency, onStatusUpdate, nearbyResources = [] }) 
         </Box>
       </Box>
     </Box>
+  );
+};
+
+/* ✅ Route Polyline Component (New Feature)
+   Use this in your Map component to visualize path */
+export const RoutePolyline = ({ from, to }) => {
+  if (!from || !to) return null;
+
+  const positions = [
+    [from.lat, from.lng],
+    [to.lat, to.lng]
+  ];
+
+  return (
+    <Polyline
+      positions={positions}
+      color="blue"
+      weight={3}
+      opacity={0.7}
+      dashArray="10, 10"
+    />
   );
 };
 

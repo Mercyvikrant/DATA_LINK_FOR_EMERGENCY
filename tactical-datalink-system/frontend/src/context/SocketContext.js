@@ -26,31 +26,66 @@ export const SocketProvider = ({ children }) => {
       // Initialize socket connection
       const newSocket = io(process.env.REACT_APP_SOCKET_URL, {
         transports: ['websocket'],
-        upgrade: false
+        upgrade: false,
+        reconnection: true,
+        reconnectionDelay: 1000,
+        reconnectionAttempts: 5
       });
 
       newSocket.on('connect', () => {
-        console.log('Socket connected:', newSocket.id);
+        console.log('✅ Socket connected:', newSocket.id);
         setConnected(true);
 
         // Register unit if node
         if (user.role === 'node' && user.unit) {
+          console.log('📡 Registering unit:', user.unit.unitId);
           newSocket.emit('register_unit', { unitId: user.unit.unitId });
         }
 
-        // Request initial data
+        // Request initial data if command
         if (user.role === 'command') {
+          console.log('📊 Requesting all positions');
           newSocket.emit('request_all_positions');
         }
       });
 
       newSocket.on('disconnect', () => {
-        console.log('Socket disconnected');
+        console.log('❌ Socket disconnected');
         setConnected(false);
+      });
+
+      newSocket.on('connect_error', (error) => {
+        console.error('Socket connection error:', error);
+        setConnected(false);
+      });
+
+      // Listen for units coming online
+      newSocket.on('unit_online', (data) => {
+        console.log('🟢 Unit came online:', data);
+        setUnits((prevUnits) => {
+          const index = prevUnits.findIndex(u => u.unitId === data.unitId);
+          if (index !== -1) {
+            const updated = [...prevUnits];
+            updated[index] = { ...updated[index], ...data };
+            return updated;
+          }
+          return [...prevUnits, data];
+        });
+      });
+
+      // Listen for units going offline
+      newSocket.on('unit_offline', (data) => {
+        console.log('🔴 Unit went offline:', data);
+        setUnits((prevUnits) =>
+          prevUnits.map(u =>
+            u.unitId === data.unitId ? { ...u, isOnline: false } : u
+          )
+        );
       });
 
       // Listen for position updates
       newSocket.on('position_updated', (data) => {
+        console.log('📍 Position updated:', data.unitId);
         setUnits((prevUnits) => {
           const index = prevUnits.findIndex(u => u.unitId === data.unitId);
           if (index !== -1) {
@@ -64,11 +99,13 @@ export const SocketProvider = ({ children }) => {
 
       // Listen for all positions (initial load)
       newSocket.on('all_positions', (data) => {
+        console.log(`📦 Received ${data.length} units from server`);
         setUnits(data);
       });
 
       // Listen for new emergencies
       newSocket.on('new_emergency', (emergency) => {
+        console.log('🚨 New emergency:', emergency.emergencyId);
         setEmergencies((prev) => [emergency, ...prev]);
         if (user.role === 'command') {
           toast.warning(`New Emergency: ${emergency.title}`, {
@@ -80,6 +117,7 @@ export const SocketProvider = ({ children }) => {
 
       // Listen for emergency assignments
       newSocket.on('emergency_assigned', (data) => {
+        console.log('✅ Emergency assigned to me:', data);
         toast.info(`You've been assigned to: ${data.emergency.title}`, {
           position: 'top-right',
           autoClose: false
@@ -88,16 +126,16 @@ export const SocketProvider = ({ children }) => {
 
       // Listen for nearby resources
       newSocket.on('nearby_resources', (resources) => {
-        console.log('Nearby resources:', resources);
-        // This will be displayed in the node dashboard
+        console.log('📍 Nearby resources:', resources);
       });
 
       // Listen for emergency status updates
       newSocket.on('emergency_status_updated', (data) => {
+        console.log('📊 Emergency status updated:', data);
         setEmergencies((prev) => 
           prev.map(e => 
             e.emergencyId === data.emergencyId 
-              ? { ...e, status: data.status } 
+              ? { ...e, status: data.status, resolvedAt: data.resolvedAt } 
               : e
           )
         );
@@ -105,11 +143,13 @@ export const SocketProvider = ({ children }) => {
 
       // Listen for unit assignments
       newSocket.on('unit_assigned', (data) => {
-        toast.success(`Unit ${data.unitId} assigned to emergency`);
+        console.log('✅ Unit assigned:', data);
+        toast.success(`Unit ${data.unitId} assigned - ${data.distance}km away, ETA: ${data.eta} min`);
       });
 
       // Listen for new messages
       newSocket.on('new_message', (message) => {
+        console.log('💬 New message:', message);
         setMessages((prev) => [message, ...prev]);
         
         if (message.priority === 'urgent') {
@@ -122,7 +162,7 @@ export const SocketProvider = ({ children }) => {
 
       // Listen for incoming calls
       newSocket.on('incoming_call', (data) => {
-        toast.info(`Incoming call from ${data.from}`, {
+        toast.info(`📞 Incoming call from ${data.from}`, {
           position: 'top-right',
           autoClose: 10000
         });
@@ -137,6 +177,7 @@ export const SocketProvider = ({ children }) => {
       setSocket(newSocket);
 
       return () => {
+        console.log('🔌 Closing socket connection');
         newSocket.close();
       };
     }
@@ -161,6 +202,7 @@ export const SocketProvider = ({ children }) => {
 
   const assignUnit = (emergencyId, unitId, role = 'primary') => {
     if (socket) {
+      console.log('📤 Assigning unit:', { emergencyId, unitId, role });
       socket.emit('assign_unit', { emergencyId, unitId, role });
     }
   };
