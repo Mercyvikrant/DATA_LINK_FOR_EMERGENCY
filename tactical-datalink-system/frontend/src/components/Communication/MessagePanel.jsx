@@ -40,6 +40,7 @@ const MessagePanel = () => {
 
   // Load initial messages
   useEffect(() => {
+    // Load initial messages from API
     const fetchMessages = async () => {
       try {
         const response = await axios.get(`${process.env.REACT_APP_API_URL}/api/messages`);
@@ -53,6 +54,7 @@ const MessagePanel = () => {
 
   // Update when new socket messages arrive
   useEffect(() => {
+    // Update messages when new ones arrive via socket
     setAllMessages(prevMessages => {
       const messageIds = prevMessages.map(m => m._id);
       const newMessages = messages.filter(m => !messageIds.includes(m._id));
@@ -62,6 +64,7 @@ const MessagePanel = () => {
 
   // Auto scroll
   useEffect(() => {
+    // Scroll to bottom when new messages arrive
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [allMessages]);
 
@@ -88,10 +91,10 @@ const MessagePanel = () => {
       await axios.delete(`${process.env.REACT_APP_API_URL}/api/messages/clear`);
       setAllMessages([]);
       setClearDialogOpen(false);
-      alert('All messages cleared successfully!');
+      alert('✅ All messages cleared successfully!');
     } catch (error) {
       console.error('Error clearing messages:', error);
-      alert('Failed to clear messages');
+      alert('❌ Failed to clear messages: ' + (error.response?.data?.error || error.message));
     } finally {
       setClearing(false);
     }
@@ -108,25 +111,27 @@ const MessagePanel = () => {
 
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
+    return date.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit' 
     });
   };
 
   return (
-    <Box sx={{
-      height: '100%',
-      display: 'flex',
+    <Box sx={{ 
+      height: '100%', 
+      display: 'flex', 
       flexDirection: 'column',
-      p: 2
+      p: 2 
     }}>
       {/* Header with Clear button */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6">Communications</Typography>
+        <Typography variant="h6">
+          Communications
+        </Typography>
         {user?.role === 'command' && (
-          <IconButton
-            color="error"
+          <IconButton 
+            color="error" 
             size="small"
             onClick={() => setClearDialogOpen(true)}
             title="Clear All Messages"
@@ -137,10 +142,10 @@ const MessagePanel = () => {
       </Box>
 
       {/* Messages List */}
-      <Paper
-        sx={{
-          flexGrow: 1,
-          overflow: 'auto',
+      <Paper 
+        sx={{ 
+          flexGrow: 1, 
+          overflow: 'auto', 
           mb: 2,
           p: 2,
           backgroundColor: 'background.default'
@@ -149,13 +154,15 @@ const MessagePanel = () => {
         <List>
           {allMessages.map((message, index) => {
             const isOwnMessage = message.from?._id === user?.id || message.from === user?.id;
+            
             return (
               <ListItem
                 key={message._id || index}
                 sx={{
                   flexDirection: 'column',
                   alignItems: isOwnMessage ? 'flex-end' : 'flex-start',
-                  mb: 1
+                  mb: 1,
+                  p: 0
                 }}
               >
                 <Box
@@ -168,27 +175,29 @@ const MessagePanel = () => {
                   }}
                 >
                   {!isOwnMessage && (
-                    <Typography
-                      variant="caption"
-                      sx={{
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
                         fontWeight: 'bold',
-                        color: isOwnMessage ? 'primary.contrastText' : 'text.primary'
+                        color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
+                        display: 'block',
+                        mb: 0.5
                       }}
                     >
                       {message.from?.name || 'Unknown'}
                       {message.from?.role === 'command' && (
-                        <Chip
-                          label="Command"
-                          size="small"
-                          sx={{ ml: 1, height: 16 }}
+                        <Chip 
+                          label="Command" 
+                          size="small" 
+                          sx={{ ml: 1, height: 16, fontSize: '0.65rem' }}
                         />
                       )}
                     </Typography>
                   )}
-
-                  <Typography
+                  
+                  <Typography 
                     variant="body2"
-                    sx={{
+                    sx={{ 
                       color: isOwnMessage ? 'primary.contrastText' : 'text.primary',
                       wordBreak: 'break-word'
                     }}
@@ -196,28 +205,28 @@ const MessagePanel = () => {
                     {message.content}
                   </Typography>
 
-                  <Box sx={{
-                    display: 'flex',
+                  <Box sx={{ 
+                    display: 'flex', 
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    mt: 0.5
+                    mt: 0.5 
                   }}>
-                    <Typography
-                      variant="caption"
-                      sx={{
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
                         color: isOwnMessage ? 'primary.contrastText' : 'text.secondary'
                       }}
                     >
                       {formatTime(message.createdAt)}
                     </Typography>
-
+                    
                     {message.priority !== 'normal' && (
                       <Chip
                         label={message.priority}
                         color={getPriorityColor(message.priority)}
                         size="small"
                         icon={message.priority === 'urgent' ? <WarningIcon /> : undefined}
-                        sx={{ height: 18, ml: 1 }}
+                        sx={{ height: 18, ml: 1, fontSize: '0.65rem' }}
                       />
                     )}
                   </Box>
@@ -290,19 +299,21 @@ const MessagePanel = () => {
       <Dialog open={clearDialogOpen} onClose={() => setClearDialogOpen(false)}>
         <DialogTitle>Clear All Messages?</DialogTitle>
         <DialogContent>
-          <Typography>
-            This will permanently delete all messages from the database.
-            This action cannot be undone.
+          <Typography gutterBottom>
+            This will permanently delete <strong>ALL messages</strong> from the database for all users.
           </Typography>
-          <Typography color="error" sx={{ mt: 2 }}>
-            Are you sure you want to continue?
+          <Typography color="error" sx={{ mt: 2, fontWeight: 'bold' }}>
+            ⚠️ This action cannot be undone!
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 2 }}>
+            This helps free up MongoDB Atlas storage space.
           </Typography>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setClearDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleClearAllMessages}
-            color="error"
+          <Button 
+            onClick={handleClearAllMessages} 
+            color="error" 
             variant="contained"
             disabled={clearing}
           >
