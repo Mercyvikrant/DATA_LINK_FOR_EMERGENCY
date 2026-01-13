@@ -207,7 +207,8 @@ Feel free to use, modify, and distribute with attribution.
 
 ## ✍️ Author
 
-**Developed by:** [Mercyvikrant](https://github.com/Mercyvikrant)  
+**Developed by:** [Mercyvikrant](https://github.com/Mercyvikrant) 
+                  [abhhayrana](https://github.com/abhhayrana)
 📧 *Contact for collaboration, suggestions, or research opportunities.*
 
 ---
